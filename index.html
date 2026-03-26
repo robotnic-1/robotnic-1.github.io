@@ -7,8 +7,10 @@
 
 <body>
 
-<h1>arduino pairing</h1>
-<button onclick="pairArduino()">arduino pairing</button>
+<h1>arduino pairing (USB)</h1>
+<button onclick="pairArduino()">connect ESP32</button>
+
+<p id="status">상태: 연결 안됨</p>
 
 <h1>server create</h1>
 <button onclick="createServer()">server create</button>
@@ -17,17 +19,52 @@
 <button onclick="downloadCode()">control code download</button>
 
 <script>
-function pairArduino() {
-    alert("아두이노 페어링 시작!");
+let port;
+let reader;
+let writer;
+
+async function pairArduino() {
+    try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+
+        document.getElementById("status").innerText = "상태: 연결됨 ✅";
+
+        writer = port.writable.getWriter();
+        reader = port.readable.getReader();
+
+        readData(); // 데이터 수신 시작
+
+    } catch (error) {
+        alert("연결 실패: " + error);
+    }
 }
 
+// 데이터 수신 함수
+async function readData() {
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const text = new TextDecoder().decode(value);
+        console.log("받은 데이터:", text);
+    }
+}
+
+    
 function createServer() {
     alert("서버 생성 시작!");
+    fetch("http://192.168.4.1/start")
+        .then(res => res.text())
+        .then(data => alert("서버 시작됨: " + data))
+        .catch(err => alert("실패: " + err));
 }
+
 
 function downloadCode() {
     window.location.href = "https://github.com/espressif/arduino-esp32/archive/refs/heads/master.zip";
 }
+    
 </script>
 
 </body>
